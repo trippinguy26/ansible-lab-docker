@@ -1,151 +1,151 @@
 # Introduction
 
-L'objectif de ce guide est de configurer un environnement de formation [Ansible](https://www.ansible.com/) en utilisant des conteneurs [Docker](https://www.docker.com/). Après avoir terminé ce tutoriel, vous aurez un conteneur maître Docker qui peut gérer trois conteneurs hôtes (vous pouvez facilement étendre le nombre d'hôtes gérés pour répondre à vos besoins).
+The aim of this guide is setup of [Ansible](https://www.ansible.com/) training environment using [Docker](https://www.docker.com/) containers. After finishing this tutorial you will have Docker master container that can manage three host containers (you can easily extend number of managed hosts to meet your needs).
 
-Pourquoi ai-je décidé d'utiliser Docker au lieu d'une virtualisation conventionnelle comme [VirtualBox](https://www.virtualbox.org/) ? Les conteneurs Docker consomment beaucoup moins de ressources, ce qui vous permet de créer des environnements de test plus importants sur votre ordinateur portable. Les conteneurs Docker sont beaucoup plus rapides à démarrer et à arrêter que les machines virtuelles standard, ce qui est important lorsque vous expérimentez et que vous montez et descendez tout l'environnement. J'ai utilisé [Docker Compose] (https://docs.docker.com/compose/overview/) pour automatiser la configuration de l'environnement de laboratoire (il n'est pas nécessaire de maintenir chaque conteneur séparément).
+Why I decided to use Docker instead of conventional virtualization like [VirtualBox](https://www.virtualbox.org/)? Docker containers consume much less resources so you can build bigger test environments on your laptop. Docker container is way faster to start/kill than standard virtual machine which is important when you experiment and bring the whole environment up and down. I used [Docker Compose](https://docs.docker.com/compose/overview/) to automate setup of lab environment (there is no need to maintain each container separately).
 
-Ce guide **n'est pas** un tutoriel Ansible ou Docker (bien que j'explique certains concepts de base). Son but est uniquement de mettre en place un environnement de laboratoire pour permettre des expériences avec Ansible sur une machine locale.
+This guide **is not** Ansible or Docker tutorial (although I explain some basic concepts). It's purpose is solely setup of lab environment to enable experiments with ansible on local machine.
 
-**IMPORTANT** : Afin de suivre ce tutoriel, vous devez installer Docker CE (Community Edition) sur votre machine. L'installation est bien documentée sur https://docs.docker.com/engine/installation/#supported-platforms et je ne la couvrirai pas ici.
+**IMPORTANT**: In order to follow this tutorial you need to install Docker CE (Community Edition) on your machine. The installation is well documented at https://docs.docker.com/engine/installation/#supported-platforms and I will not cover it here.
 
-Une brève description d'Ansible et de Docker :
+A brief description of Ansible and Docker:
 
 ## Ansible
 
-Ansible est un système d'automatisation informatique. Il gère la gestion de la configuration, le déploiement d'applications, l'approvisionnement du cloud, l'exécution de tâches ad hoc et l'orchestration multinode - y compris la banalisation de choses comme les mises à jour sans temps d'arrêt avec des équilibreurs de charge.
+Ansible is IT automation system. It handles configuration-management, application deployment, cloud provisioning, ad-hoc task-execution, and multinode orchestration - including trivializing things like zero downtime rolling updates with load balancers.
 
-Vous pouvez en savoir plus à l'adresse suivante : [www.ansible.com](https://www.ansible.com/)
+You can read more at [www.ansible.com](https://www.ansible.com/)
 
 ## Docker
 
-Docker est la première plate-forme logicielle de conteneurs au monde. Les développeurs utilisent Docker pour éliminer les problèmes de "fonctionnement sur ma machine" lorsqu'ils collaborent sur du code avec leurs collègues. Les opérateurs utilisent Docker pour exécuter et gérer des applications côte à côte dans des conteneurs isolés afin d'obtenir une meilleure densité de calcul. Les entreprises utilisent Docker pour créer des pipelines de livraison de logiciels agiles afin d'expédier de nouvelles fonctionnalités plus rapidement, en toute sécurité et en toute confiance pour les applications Linux, Windows Server et Linux-on-mainframe. 
+Docker is the world’s leading software container platform. Developers use Docker to eliminate "works on my machine" problems when collaborating on code with co-workers. Operators use Docker to run and manage apps side-by-side in isolated containers to get better compute density. Enterprises use Docker to build agile software delivery pipelines to ship new features faster, more securely and with confidence for both Linux, Windows Server, and Linux-on-mainframe apps. 
 
-Vous pouvez en savoir plus à l'adresse suivante : [www.docker.com](https://www.docker.com/)
+You can read more at [www.docker.com](https://www.docker.com/)
 
-# Démarrage rapide
+# Quick start
 
-## Cloner le dépôt
+## Clone repository
 
-Clonez ce dépôt git :
+Clone this git repository:
 
 `git clone https://github.com/LMtx/ansible-lab-docker.git`
 
-## Construire des images et exécuter des conteneurs
+## Build images and run containers
 
-Entrez dans le répertoire **ansible** contenant le fichier [docker-compose.yml](./ansible/docker-compose.yml).
+Enter **ansible** directory containing [docker-compose.yml](./ansible/docker-compose.yml) file.
 
-Construire des images docker et exécuter des conteneurs en arrière-plan (détails définis dans [docker-compose.yml](./ansible/docker-compose.yml)) :
+Build docker images and run containers in the background (details defined in [docker-compose.yml](./ansible/docker-compose.yml)):
 
-`docker-compose up -d --build``.
+`docker-compose up -d --build`
 
-Connectez-vous au **nœud principal** :
+Connect to **master node**:
 
 `docker exec -it master01 bash`
 
-Vérifier si la connexion réseau fonctionne entre les hôtes maître et gérés :
+Verify if network connection is working between master and managed hosts:
 
 `ping -c 2 host01`
 
-Démarrez un [Agent SSH] (https://man.openbsd.org/ssh-agent) sur le **nœud principal** pour gérer les clés SSH protégées par une phrase de passe :
+Start an [SSH Agent](https://man.openbsd.org/ssh-agent) on **master node** to handle SSH keys protected by passphrase:
 
 `ssh-agent bash`
 
-Chargez la clé privée dans l'agent SSH afin de permettre l'établissement de connexions sans avoir à saisir la phrase de passe de la clé à chaque fois :
+Load private key into SSH Agent in order to allow establishing connections without entering key passphrase every time:
 
 `ssh-add master_key`
 
-    Entrez la phrase de passe pour la clé maître :
+    Enter passphrase for master_key:
 
-La **phrase de passe** par défaut est : `12345`
+As **passphrase** enter: `12345`
 
-La phrase de passe de la clé par défaut a pu être modifiée dans [ansible/master/Dockerfile](./ansible/master/Dockerfile).
+Default key passphrase can be changed in [ansible/master/Dockerfile](./ansible/master/Dockerfile)
 
-## Playbooks Ansible
+## Ansible playbooks
 
-Exécutez un [sample ansible playbook](./ansible/master/ansible/ping_all.yml) qui vérifie la connexion entre le noeud maître et les hôtes gérés :
+Run a [sample ansible playbook](./ansible/master/ansible/ping_all.yml) that checks connection between master node and managed hosts:
 
 `ansible-playbook -i inventory ping_all.yml`
 
-Confirmez _chaque_ nouvel hôte pour les connexions SSH :
+Confirm _every_ new host for SSH connections:
 
-    L'empreinte de la clé ECDSA est SHA256:HwEUUnBtOm9hVAR2PJflNdCVchSCzIlpOpqYlwp+w+w.
-    Êtes-vous sûr de vouloir continuer à vous connecter (oui/non) ?
+    ECDSA key fingerprint is SHA256:HwEUUnBtOm9hVAR2PJflNdCVchSCzIlpOpqYlwp+w+w.
+    Are you sure you want to continue connecting (yes/no)?
 
-Tapez : `yes` (trois fois)
+Type: `yes` (three times)
 
-Installer PHP sur le web **groupe d'inventaire** :
+Install PHP on web **inventory group**:
 
-Afin de regrouper les hôtes gérés pour faciliter la maintenance, vous pouvez utiliser des groupes dans le [fichier d'inventaire] ansible (./ansible/master/ansible/inventory).
+In order to group managed hosts for easier maintenance you can use groups in ansible [inventory file](./ansible/master/ansible/inventory).
 
-Exécutez un [sample ansible playbook](./ansible/master/ansible/install_php.yml) :
+Run a [sample ansible playbook](./ansible/master/ansible/install_php.yml):
 
-`ansible-playbook -i inventaire install_php.yml`
+`ansible-playbook -i inventory install_php.yml`
 
-## Copier les données entre le système de fichiers local et les conteneurs
+## Copy data between local file system and containers
 
-### Copier le répertoire du conteneur vers le système de fichiers local
+### Copy directory from container to local file system
 
 `docker cp master01:/var/ans/ .`
 
-### Copier le répertoire du système de fichiers local vers le conteneur :
+### Copy directory from local file system to container:
 
 `docker cp ./ans master01:/var/`
 
-Vous pouvez vérifier l'utilisation en exécutant :
+You can check usage executing:
 
 `docker cp --help`
 
-## Nettoyage
+## Cleanup
 
-Lorsque vous avez terminé vos expériences ou que vous voulez détruire l'environnement du laboratoire pour en apporter un nouveau, exécutez les commandes suivantes.
+After you are done with your experiments or want to destroy lab environment to bring new one execute following commands.
 
-Arrêtez les conteneurs :
+Stop containers:
 
 `docker-compose kill`
 
-Supprimez les conteneurs :
+Remove containers:
 
 `docker-compose rm`
 
 
-Supprimez le volume :
+Remove volume:
 
 `docker volume rm ansible_ansible_vol`
 
-Si vous voulez, vous pouvez supprimer les images Docker (bien que cela ne soit pas nécessaire pour démarrer un nouvel environnement de laboratoire) :
+If you want you can remove Docker images (although that is not required to start new lab environment):
 
 `docker rmi ansible_host ansible_master ansible_base`
 
-# Conseils
+# Tips
 
-Afin de partager la clé SSH publique entre les conteneurs **master** et **host** j'ai utilisé le **volume** de Docker monté sur tous les conteneurs :
+In order to share public SSH key between **master** and **host** containers I used Docker **volume** mounted to all containers:
 
-[docker-compose.yml](./ansible/docker-compose.yml) :
+[docker-compose.yml](./ansible/docker-compose.yml):
 
     [...]
-    volumes :
+    volumes:
       - ansible_vol:/var/ans
     [...]
 
-Le conteneur maître stocke la clé SSH dans ce volume ([ansible/master/Dockerfile](./ansible/master/Dockerfile)) :
+Master container stores SSH key in that volume ([ansible/master/Dockerfile](./ansible/master/Dockerfile)):
 
     [...]
     WORKDIR /var/ans
     RUN ssh-keygen -t rsa -N 12345 -C "master key" -f master_key
     [...]
 
-Et les conteneurs hôtes ajoutent la clé publique SSH au fichier authorized_keys ([ansible/host/run.sh](./ansible/host/run.sh)) afin d'autoriser les connexions depuis le maître :
+And host containers add SSH public key to authorized_keys file ([ansible/host/run.sh](./ansible/host/run.sh)) in order to allow connections from master:
 
     cat /var/ans/master_key.pub >> /root/.ssh/authorized_keys
 
-**IMPORTANT:** cette configuration est valable pour un environnement de laboratoire mais pour un déploiement en production vous devez distribuer la clé publique d'une autre manière.
+**IMPORTANT:** this is valid setup for lab environment but for production deployment you have to distribute the public key other way.
 
-## Dépannage
+# Troubleshooting
 
-## Les conteneurs hôtes s'arrêtent après leur création
+## Host containers stop after creation
 
-Vérifiez que le type de fin de ligne de [ansible/hosts/run.sh](./ansible/host/run.sh) est correct - il **doit être Linux/Unix (LF)** et non Windows (CRLF). Vous pouvez changer le type de fin de ligne en utilisant un éditeur de code source (comme Notepad++ ou Visual Studio Code) ; sous Linux vous pouvez utiliser la commande `dos2unix`.
+Check that [ansible/hosts/run.sh](./ansible/host/run.sh) has proper end of line type - it **should be Linux/Unix (LF)** not Windows (CRLF). You can change end of line type using source code editor (like Notepad++ or Visual Studio Code); under Linux you can use `dos2unix` command.
 
-## Autre problème
+## Other issue
 
-Veuillez ouvrir un [problème] (https://github.com/LMtx/ansible-lab-docker/issues/new) et j'essaierai de vous aider.
+Please open an [issue](https://github.com/LMtx/ansible-lab-docker/issues/new) and I'll try to help.
