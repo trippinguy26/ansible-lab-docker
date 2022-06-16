@@ -19,8 +19,8 @@ services:
       - master
     build: ./host/
     image: ansible_host
-    container_name: host01
-    hostname: host01
+    container_name: host00
+    hostname: host00
     command: ["/var/run.sh"]
     volumes:
      - ansible_vol:/var/ans
